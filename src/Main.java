@@ -1,5 +1,7 @@
 /**
  * Testing & example program for the Distributed Thread Pool.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
  */
 
 import DistPool.DistPoolExecutor;

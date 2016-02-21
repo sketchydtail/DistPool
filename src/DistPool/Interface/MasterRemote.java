@@ -8,6 +8,8 @@ import java.rmi.RemoteException;
 
 /**
  * RMI interface to the master
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
  */
 public interface MasterRemote extends Remote{
 

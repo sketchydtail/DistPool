@@ -5,7 +5,8 @@ import Distributors.DistributableTask;
 import java.util.concurrent.Callable;
 
 /**
- * Created by king_ on 15/02/2016.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
  */
 public abstract class DistTask implements DistributableTask, Callable {
     int id;

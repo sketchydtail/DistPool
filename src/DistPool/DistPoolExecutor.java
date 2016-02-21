@@ -1,6 +1,16 @@
+/**
+ * Distributed Thread Pool main class.
+ *
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
+ * Run pooled tasks on multiple networked machines.
+ */
+
 package DistPool;
 
-import DistPool.Interface.*;
+import DistPool.Interface.MasterRemote;
+import DistPool.Interface.WorkerRemote;
+import DistPool.Interface.WorkerState;
 import Distributors.DistFuture;
 import Distributors.DistributableTask;
 import Distributors.DistributorService;
@@ -11,8 +21,13 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 enum RunState {STARTING, RUNNING, SHUTDOWN, STOP, TIDYING, TERMINATED}

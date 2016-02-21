@@ -6,7 +6,8 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**
- * Created by king_ on 16/02/2016.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
  */
 public interface WorkerRemote extends Remote {
     //keep alive signal

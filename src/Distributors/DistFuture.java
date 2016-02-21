@@ -41,28 +41,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * A cancellable asynchronous computation.  This class provides a base
- * implementation of {@link Future}, with methods to start and cancel
- * a computation, query to see if the computation is complete, and
- * retrieve the result of the computation.  The result can only be
- * retrieved when the computation has completed; the {@code get}
- * methods will block if the computation has not yet completed.  Once
- * the computation has completed, the computation cannot be restarted
- * or cancelled (unless the computation is invoked using
- * {@link #runAndReset}).
- *
- * <p>A {@code FutureTask} can be used to wrap a {@link Callable} or
- * {@link Runnable} object.  Because {@code FutureTask} implements
- * {@code Runnable}, a {@code FutureTask} can be submitted to an
- * {@link Executor} for execution.
- *
- * <p>In addition to serving as a standalone class, this class provides
- * {@code protected} functionality that may be useful when creating
- * customized task classes.
- *
- * @since 1.5
- * @author Doug Lea
- * @param <V> The result type returned by this FutureTask's {@code get} methods
+ * *@author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
+ * Based on FutureTask by Doug Lea
+ * @param <V>
  */
 public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
     /*
@@ -76,6 +58,35 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
      * Style note: As usual, we bypass overhead of using
      * AtomicXFieldUpdaters and instead directly use Unsafe intrinsics.
      */
+
+    private static final int NEW = 0;
+    private static final int COMPLETING = 1;
+    private static final int NORMAL = 2;
+    private static final int EXCEPTIONAL = 3;
+    private static final int CANCELLED = 4;
+    private static final int INTERRUPTING = 5;
+    private static final int INTERRUPTED = 6;
+    // Unsafe mechanics
+    private static final sun.misc.Unsafe UNSAFE;
+    private static final long stateOffset;
+    private static final long runnerOffset;
+    private static final long waitersOffset;
+
+    static {
+        try {
+            // UNSAFE = sun.misc.Unsafe.getUnsafe();
+            UNSAFE = getUnsafe();
+            Class<?> k = DistFuture.class;
+            stateOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("state"));
+            runnerOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("runner"));
+            waitersOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("waiters"));
+        } catch (Exception e) {
+            throw new Error(e);
+        }
+    }
 
     /**
      * The run state of this task, initially NEW.  The run state
@@ -94,14 +105,6 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
      * NEW -> INTERRUPTING -> INTERRUPTED
      */
     private volatile int state;
-    private static final int NEW          = 0;
-    private static final int COMPLETING   = 1;
-    private static final int NORMAL       = 2;
-    private static final int EXCEPTIONAL  = 3;
-    private static final int CANCELLED    = 4;
-    private static final int INTERRUPTING = 5;
-    private static final int INTERRUPTED  = 6;
-
     /** The underlying callable; nulled out after running */
     private Callable callable;
     /** The result to return or exception to throw from get() */
@@ -110,21 +113,6 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
     private volatile Thread runner;
     /** Treiber stack of waiting threads */
     private volatile WaitNode waiters;
-
-    /**
-     * Returns result or throws exception for completed task.
-     *
-     * @param s completed state value
-     */
-    @SuppressWarnings("unchecked")
-    private V report(int s) throws ExecutionException {
-        Object x = outcome;
-        if (s == NORMAL)
-            return (V)x;
-        if (s >= CANCELLED)
-            throw new CancellationException();
-        throw new ExecutionException((Throwable)x);
-    }
 
     /**
      * Creates a {@code FutureTask} that will, upon running, execute the
@@ -155,6 +143,41 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
     public DistFuture(Runnable runnable, V result) {
         this.callable = Executors.callable(runnable, result);
         this.state = NEW;       // ensure visibility of callable
+    }
+
+    @SuppressWarnings("restriction")
+    private static Unsafe getUnsafe() {
+        try {
+
+            Field singleoneInstanceField = Unsafe.class.getDeclaredField("theUnsafe");
+            singleoneInstanceField.setAccessible(true);
+            return (Unsafe) singleoneInstanceField.get(null);
+
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Returns result or throws exception for completed task.
+     *
+     * @param s completed state value
+     */
+    @SuppressWarnings("unchecked")
+    private V report(int s) throws ExecutionException {
+        Object x = outcome;
+        if (s == NORMAL)
+            return (V) x;
+        if (s >= CANCELLED)
+            throw new CancellationException();
+        throw new ExecutionException((Throwable) x);
     }
 
     public boolean isCancelled() {
@@ -363,17 +386,6 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
     }
 
     /**
-     * Simple linked list nodes to record waiting threads in a Treiber
-     * stack.  See other classes such as Phaser and SynchronousQueue
-     * for more detailed explanation.
-     */
-    static final class WaitNode {
-        volatile Thread thread;
-        volatile WaitNode next;
-        WaitNode() { thread = Thread.currentThread(); }
-    }
-
-    /**
      * Removes and signals all waiting threads, invokes done(), and
      * nulls out callable.
      */
@@ -478,43 +490,18 @@ public class DistFuture<V extends Distributable> implements RunnableFuture<V> {
             }
         }
     }
-    @SuppressWarnings("restriction")
-    private static Unsafe getUnsafe() {
-        try {
 
-            Field singleoneInstanceField = Unsafe.class.getDeclaredField("theUnsafe");
-            singleoneInstanceField.setAccessible(true);
-            return (Unsafe) singleoneInstanceField.get(null);
+    /**
+     * Simple linked list nodes to record waiting threads in a Treiber
+     * stack.  See other classes such as Phaser and SynchronousQueue
+     * for more detailed explanation.
+     */
+    static final class WaitNode {
+        volatile Thread thread;
+        volatile WaitNode next;
 
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long stateOffset;
-    private static final long runnerOffset;
-    private static final long waitersOffset;
-    static {
-        try {
-           // UNSAFE = sun.misc.Unsafe.getUnsafe();
-            UNSAFE = getUnsafe();
-            Class<?> k = DistFuture.class;
-            stateOffset = UNSAFE.objectFieldOffset
-                    (k.getDeclaredField("state"));
-            runnerOffset = UNSAFE.objectFieldOffset
-                    (k.getDeclaredField("runner"));
-            waitersOffset = UNSAFE.objectFieldOffset
-                    (k.getDeclaredField("waiters"));
-        } catch (Exception e) {
-            throw new Error(e);
+        WaitNode() {
+            thread = Thread.currentThread();
         }
     }
 

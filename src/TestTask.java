@@ -4,47 +4,32 @@ import Distributors.Distributable;
 import java.math.BigDecimal;
 
 /**
- * Created by king_ on 15/02/2016.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
+ * Based on someones PI calculations
+ * todo - find out who wrote it
  */
 public class TestTask extends DistTask{
-    public TestTask (int digits){
-        this.digits = digits;
-    }
-    boolean done = false;
-
-    private BigDecimal resultVal;
     private static final long serialVersionUID = 227L;
-
     /**
      * constants used in pi computation
      */
     private static final BigDecimal FOUR =
             BigDecimal.valueOf(4);
-
     /**
      * rounding mode to use during pi computation
      */
     private static final int roundingMode =
             BigDecimal.ROUND_HALF_EVEN;
-
     /**
      * digits of precision after the decimal point
      */
     private final int digits;
+    boolean done = false;
+    private BigDecimal resultVal;
 
-    /**
-     * Calculate pi.
-     */
-    /*
-    public Supplier<DistributableTask> execute() {
-        System.out.println("Executed");
-        resultVal = computePi(digits);
-        done = true;
-        return () -> this;
-    }
-*/
-    public boolean isDone(){
-        return done;
+    public TestTask(int digits) {
+        this.digits = digits;
     }
 
     /**
@@ -104,6 +89,21 @@ public class TestTask extends DistTask{
             i++;
         } while (term.compareTo(BigDecimal.ZERO) != 0);
         return result;
+    }
+
+    /**
+     * Calculate pi.
+     */
+    /*
+    public Supplier<DistributableTask> execute() {
+        System.out.println("Executed");
+        resultVal = computePi(digits);
+        done = true;
+        return () -> this;
+    }
+*/
+    public boolean isDone() {
+        return done;
     }
 
     public BigDecimal getResult() {

@@ -1,7 +1,9 @@
 package Distributors;
 
 /**
- * Created by king_ on 16/02/2016.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
+ * Based on RejectedExecutionException by Doug Lea
  */
 public class RejectedDistributionException extends RuntimeException {
     public RejectedDistributionException() { }

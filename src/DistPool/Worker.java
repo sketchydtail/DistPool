@@ -1,6 +1,8 @@
 package DistPool;
 
-import DistPool.Interface.*;
+import DistPool.Interface.MasterRemote;
+import DistPool.Interface.WorkerRemote;
+import DistPool.Interface.WorkerState;
 import Distributors.DistributableTask;
 
 import java.io.IOException;
@@ -18,7 +20,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Created by king_ on 16/02/2016.
+ * @author Julian Hunt aka. Sketchy D Tail
+ * @version 1.0, 21/02/2016
  */
 public class Worker implements WorkerRemote {
     private static final Logger logger = Logger.getLogger("DistPool.Slave");
